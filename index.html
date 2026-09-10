@@ -119,7 +119,6 @@
         // 🧠 สร้าง Component การเคลื่อนไหวของไดโนเสาร์ด้วย A-Frame JS
         AFRAME.registerComponent('dino-runner', {
             init: function () {
-                // อ้างอิงชิ้นส่วนของไดโนเสาร์
                 this.leftLeg = this.el.querySelector('#left-leg');
                 this.rightLeg = this.el.querySelector('#right-leg');
                 this.leftArm = this.el.querySelector('#left-arm');
@@ -130,12 +129,11 @@
             tick: function (t, dt) {
                 if (!dt) return;
 
-                // คำนวณเวลาตามความเร็วที่ผู้ใช้เลือก (dinoSpeed)
                 let speed = window.dinoSpeed;
                 this.time += (dt / 1000) * speed;
 
-                // 1. แกว่งขาขวากับขาซ้ายสลับกัน (ใช้คลื่น Sine)
-                let legAngle = Math.sin(this.time * 3) * 35; // มุมแกว่ง 35 องศา
+                // 1. แกว่งขาขวากับขาซ้ายสลับกัน
+                let legAngle = Math.sin(this.time * 3) * 35;
                 if (this.leftLeg) this.leftLeg.setAttribute('rotation', `${legAngle} 0 0`);
                 if (this.rightLeg) this.rightLeg.setAttribute('rotation', `${-legAngle} 0 0`);
 
@@ -156,11 +154,11 @@
     <!-- 🎥 AR Scene Setup -->
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
         
-        <!-- 🎯 Hiro Marker Anchor (ทำงานเมื่อส่อง Hiro Marker) -->
+        <!-- 🎯 Hiro Marker Anchor -->
         <a-marker preset="hiro">
             
-            <!-- 🦖 แม่แบบของน้องไดโนเสาร์สีชมพู (ผูก Script dino-runner) -->
-            <a-entity id="pink-dino" position="0 0 0" scale="0.6 0.6 0.6" dino-runner>
+            <!-- 🦖 ไดโนเสาร์สีชมพู (เพิ่ม rotation="0 90 0" เพื่อหมุนหันข้าง) -->
+            <a-entity id="pink-dino" position="0 0 0" rotation="0 90 0" scale="0.6 0.6 0.6" dino-runner>
                 
                 <!-- กลุ่มลำตัวเด้งตามการวิ่ง (Body Group) -->
                 <a-entity id="body-group">
@@ -174,7 +172,7 @@
                     <a-box position="0 1.5 0.2" width="0.65" height="0.6" depth="0.7" color="#FF69B4"></a-box>
                     <!-- ปาก (Snout) -->
                     <a-box position="0 1.4 0.6" width="0.6" height="0.4" depth="0.5" color="#FF69B4"></a-box>
-                    <a-box position="0 1.25 0.6" width="0.58" height="0.08" depth="0.48" color="#FF1493"></a-box> <!-- ร่องปาก -->
+                    <a-box position="0 1.25 0.6" width="0.58" height="0.08" depth="0.48" color="#FF1493"></a-box>
 
                     <!-- ตาซ้าย & ขวา (Eyes) -->
                     <a-sphere position="-0.34 1.6 0.4" radius="0.1" color="#FFFFFF"></a-sphere>
@@ -206,16 +204,16 @@
 
                 </a-entity>
 
-                <!-- 🦵 ขาซ้าย (Left Leg - หมุนรอบจุดสะโพก) -->
+                <!-- 🦵 ขาซ้าย (Left Leg) -->
                 <a-entity id="left-leg" position="-0.22 0.4 0">
                     <a-box position="0 -0.25 0" width="0.18" height="0.5" depth="0.22" color="#FF1493"></a-box>
-                    <a-box position="0 -0.48 0.1" width="0.2" height="0.1" depth="0.35" color="#FF1493"></a-box> <!-- เท้า -->
+                    <a-box position="0 -0.48 0.1" width="0.2" height="0.1" depth="0.35" color="#FF1493"></a-box>
                 </a-entity>
 
-                <!-- 🦵 ขาขวา (Right Leg - หมุนรอบจุดสะโพก) -->
+                <!-- 🦵 ขาขวา (Right Leg) -->
                 <a-entity id="right-leg" position="0.22 0.4 0">
                     <a-box position="0 -0.25 0" width="0.18" height="0.5" depth="0.22" color="#FF1493"></a-box>
-                    <a-box position="0 -0.48 0.1" width="0.2" height="0.1" depth="0.35" color="#FF1493"></a-box> <!-- เท้า -->
+                    <a-box position="0 -0.48 0.1" width="0.2" height="0.1" depth="0.35" color="#FF1493"></a-box>
                 </a-entity>
 
             </a-entity>
