@@ -3,89 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR ควบคุมความเร็วการหมุน - โดยครู Code</title>
+    <title>Web AR ไดโนเสาร์สีชมพูวิ่งอยู่กับที่ - โดยครู Code</title>
     
-    <!-- 1. โหลด A-Frame สำหรับสร้าง 3D -->
+    <!-- 1. A-Frame 3D Library -->
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    
-    <!-- 2. โหลด AR.js สำหรับเชื่อมต่อกล้องและทำ AR -->
+
+    <!-- 2. AR.js Library สำหรับกล้องและ Marker -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    
+
     <style>
-        /* ตกแต่ง UI ปุ่มกดให้ซ้อนทับหน้ากล้อง AR */
-        .ui-container {
-            position: absolute;
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Kanit', 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        /* แถบแจ้งสถานะการตรวจจับ Marker */
+        #status-bar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .status-lost {
+            background-color: #ff4757;
+            color: white;
+        }
+
+        .status-found {
+            background-color: #ff6b81;
+            color: white;
+        }
+
+        /* แผงควบคุมความเร็วการวิ่ง */
+        #control-panel {
+            position: fixed;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 1000; /* ให้อยู่หน้าสุด */
+            z-index: 1000;
             display: flex;
-            gap: 15px;
+            gap: 10px;
             background: rgba(255, 255, 255, 0.9);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            backdrop-filter: blur(8px);
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 8px 25px rgba(255, 105, 180, 0.3);
         }
-        
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
+
+        .btn {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 25px;
             font-weight: bold;
             cursor: pointer;
-            border: none;
-            background-color: #28a745;
-            color: white;
-            border-radius: 8px;
-            transition: 0.2s;
+            transition: all 0.2s ease;
+            font-size: 14px;
         }
-        
-        button:hover { background-color: #218838; }
-        button.btn-slow { background-color: #ffc107; color: black; }
-        button.btn-slow:hover { background-color: #e0a800; }
-        button.btn-fast { background-color: #dc3545; }
-        button.btn-fast:hover { background-color: #c82333; }
+
+        .btn:active { transform: scale(0.92); }
+        .btn-slow { background: #ffeaa7; color: #d63031; }
+        .btn-normal { background: #ff78ae; color: white; }
+        .btn-fast { background: #ff1493; color: white; }
+        .btn-pause { background: #636e72; color: white; }
     </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
+<body>
 
-    <!-- ส่วนที่ 1: ปุ่ม UI บนหน้าจอ -->
-    <div class="ui-container">
-        <button class="btn-slow" onclick="changeSpeed(10000)">ช้าลง (10 วิ/รอบ)</button>
-        <button onclick="changeSpeed(5000)">ปกติ (5 วิ/รอบ)</button>
-        <button class="btn-fast" onclick="changeSpeed(1500)">เร็วขึ้น (1.5 วิ/รอบ)</button>
+    <!-- แถบแสดงสถานะ -->
+    <div id="status-bar" class="status-lost">
+        🔴 ไม่พบ Hiro Marker (กรุณาส่องกล้องไปที่ Marker)
     </div>
 
-    <!-- ส่วนที่ 2: ฉาก AR -->
+    <!-- ปุ่มควบคุมความเร็ววิ่ง -->
+    <div id="control-panel">
+        <button class="btn btn-slow" onclick="setSpeed(0.005)">🐢 วิ่งช้า</button>
+        <button class="btn btn-normal" onclick="setSpeed(0.012)">🦖 วิ่งปกติ</button>
+        <button class="btn btn-fast" onclick="setSpeed(0.025)">⚡ วิ่งเร็วสปีด!</button>
+        <button class="btn btn-pause" onclick="setSpeed(0)">⏸️ หยุดวิ่ง</button>
+    </div>
+
+    <!-- ฉาก AR -->
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
         
-        <!-- ใช้ Hiro Marker (มาร์กเกอร์มาตรฐาน) -->
-        <a-marker preset="hiro">
+        <!-- ตรวจจับ Hiro Marker -->
+        <a-marker preset="hiro" id="hiro-marker">
             
-            <!-- วัตถุกล่อง 3 มิติ -->
-            <a-box
-                id="myBox"
-                position="0 0.5 0"
-                material="color: #4CC3D9; transparent: true; opacity: 0.9;"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear;">
-            </a-box>
-            
+            <!-- วัตถุไดโนเสาร์สีชมพูหลัก -->
+            <a-entity id="dinosaur" position="0 0 0" scale="0.7 0.7 0.7" dino-animator>
+                
+                <!-- กลุ่มตัวไดโนเสาร์ (ย่อ/ขยายกระเด้งเวลาวิ่ง) -->
+                <a-entity id="dino-body-group" position="0 0.4 0">
+                    
+                    <!-- ลำตัว (Pink Body) -->
+                    <a-sphere position="0 0.5 0" radius="0.5" scale="0.8 1 0.9" color="#ff8da1"></a-sphere>
+                    <!-- หน้าท้องสีชมพูอ่อน (Belly) -->
+                    <a-sphere position="0 0.45 0.15" radius="0.4" scale="0.7 0.9 0.7" color="#ffc2d1"></a-sphere>
+
+                    <!-- หัวไดโนเสาร์ (Head & Snout) -->
+                    <a-entity position="0 1.0 0.2">
+                        <!-- กะโหลก -->
+                        <a-sphere position="0 0 0" radius="0.38" color="#ff8da1"></a-sphere>
+                        <!-- จมูกยื่น -->
+                        <a-box position="0 -0.08 0.25" depth="0.4" height="0.25" width="0.4" color="#ff8da1" radius="0.05"></a-box>
+                        <!-- ตาซ้าย/ขวา -->
+                        <a-sphere position="-0.2 0.15 0.18" radius="0.08" color="#ffffff"></a-sphere>
+                        <a-sphere position="-0.2 0.15 0.23" radius="0.04" color="#000000"></a-sphere>
+                        <a-sphere position="0.2 0.15 0.18" radius="0.08" color="#ffffff"></a-sphere>
+                        <a-sphere position="0.2 0.15 0.23" radius="0.04" color="#000000"></a-sphere>
+                        <!-- แก้มชมพูเข้ม -->
+                        <a-circle position="-0.3 0 0.15" radius="0.08" color="#ff4757" rotation="0 -90 0"></a-circle>
+                        <a-circle position="0.3 0 0.15" radius="0.08" color="#ff4757" rotation="0 90 0"></a-circle>
+                    </a-entity>
+
+                    <!-- หนามหลังสีเหลืองน่ารัก (Spikes) -->
+                    <a-cone position="0 1.2 -0.1" radius-bottom="0.08" height="0.2" color="#ffeaa7" rotation="-20 0 0"></a-cone>
+                    <a-cone position="0 0.9 -0.3" radius-bottom="0.08" height="0.2" color="#ffeaa7" rotation="-30 0 0"></a-cone>
+                    <a-cone position="0 0.6 -0.4" radius-bottom="0.08" height="0.2" color="#ffeaa7" rotation="-40 0 0"></a-cone>
+
+                    <!-- แขนซ้าย/ขวา (Arms) -->
+                    <a-entity id="arm-left" position="-0.35 0.6 0.2">
+                        <a-capsule position="0 -0.1 0.05" radius="0.05" length="0.2" color="#ff78ae" rotation="30 0 0"></a-capsule>
+                    </a-entity>
+                    <a-entity id="arm-right" position="0.35 0.6 0.2">
+                        <a-capsule position="0 -0.1 0.05" radius="0.05" length="0.2" color="#ff78ae" rotation="30 0 0"></a-capsule>
+                    </a-entity>
+
+                    <!-- หาง (Tail) -->
+                    <a-entity id="dino-tail" position="0 0.3 -0.35">
+                        <a-cone position="0 0 -0.3" radius-bottom="0.2" height="0.6" color="#ff8da1" rotation="-60 0 0"></a-cone>
+                    </a-entity>
+
+                </a-entity> <!-- จบกลุ่มตัว -->
+
+                <!-- ขาซ้าย (Left Leg - Pivot ที่สะโพก) -->
+                <a-entity id="leg-left" position="-0.22 0.35 0">
+                    <a-cylinder position="0 -0.2 0" radius="0.09" height="0.4" color="#ff78ae"></a-cylinder>
+                    <a-box position="0 -0.4 0.08" depth="0.25" height="0.08" width="0.15" color="#ff4757"></a-box>
+                </a-entity>
+
+                <!-- ขาขวา (Right Leg - Pivot ที่สะโพก) -->
+                <a-entity id="leg-right" position="0.22 0.35 0">
+                    <a-cylinder position="0 -0.2 0" radius="0.09" height="0.4" color="#ff78ae"></a-cylinder>
+                    <a-box position="0 -0.4 0.08" depth="0.25" height="0.08" width="0.15" color="#ff4757"></a-box>
+                </a-entity>
+
+            </a-entity>
+
         </a-marker>
 
-        <!-- กล้อง AR -->
+        <!-- มุมกล้อง -->
         <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- ส่วนที่ 3: JavaScript สำหรับควบคุมความเร็ว -->
+    <!-- JavaScript ลอจิกการเคลื่อนไหว -->
     <script>
-        function changeSpeed(newDuration) {
-            // ดึง Element กล่องจาก ID
-            const box = document.getElementById('myBox');
-            
-            // อัปเดตความเร็ว โดยเปลี่ยนค่า dur (duration คือระยะเวลาต่อ 1 รอบ มีหน่วยเป็นมิลลิวินาที)
-            // ค่าน้อย = เร็วขึ้น, ค่ามาก = ช้าลง
-            box.setAttribute('animation', `property: rotation; to: 0 360 0; loop: true; dur: ${newDuration}; easing: linear;`);
-            
-            console.log("เปลี่ยนความเร็วเป็น: " + newDuration + " ms");
+        // สร้าง Custom Component ควบคุมแอนิเมชันการวิ่ง
+        AFRAME.registerComponent('dino-animator', {
+            schema: {
+                speed: { type: 'number', default: 0.012 } // ความเร็วเริ่มต้น (วิ่งปกติ)
+            },
+
+            init: function () {
+                this.isMarkerVisible = false; // สถานะการมองเห็น Marker
+                this.animTime = 0; // ตัวนับเวลาสำหรับอนิเมชั่น
+
+                // อ้างอิงชิ้นส่วนอวัยวะต่างๆ
+                this.legLeft = document.querySelector('#leg-left');
+                this.legRight = document.querySelector('#leg-right');
+                this.armLeft = document.querySelector('#arm-left');
+                this.armRight = document.querySelector('#arm-right');
+                this.dinoBodyGroup = document.querySelector('#dino-body-group');
+                this.dinoTail = document.querySelector('#dino-tail');
+
+                const marker = document.querySelector('#hiro-marker');
+                const statusBar = document.querySelector('#status-bar');
+
+                // เมื่อเจอกล้องส่องเห็น Hiro Marker
+                marker.addEventListener('markerFound', () => {
+                    this.isMarkerVisible = true;
+                    statusBar.innerText = "🟢 พบ Hiro Marker! ไดโนเสาร์กำลังวิ่ง";
+                    statusBar.className = "status-found";
+                });
+
+                // เมื่อ Marker ส่องไม่เห็นแล้ว
+                marker.addEventListener('markerLost', () => {
+                    this.isMarkerVisible = false;
+                    statusBar.innerText = "🔴 ไม่พบ Hiro Marker (กรุณาส่องกล้องไปที่ Marker)";
+                    statusBar.className = "status-lost";
+                });
+            },
+
+            // คำนวณเฟรมต่อเฟรม (Render Loop)
+            tick: function (time, timeDelta) {
+                // จะคำนวณแอนิเมชันเมื่อเห็น Marker และมีความเร็วมากกว่า 0
+                if (this.isMarkerVisible && this.data.speed > 0) {
+                    
+                    // เพิ่มตัวนับเวลาตามความเร็วที่ตั้งไว้
+                    this.animTime += timeDelta * this.data.speed;
+
+                    // 1. คำนวณมุมแกว่งของขา (สลับกันด้วยตรีโกณมิติ Sine Wave)
+                    const legAngle = Math.sin(this.animTime) * 35; // แกว่งสูงสุด 35 องศา
+                    this.legLeft.setAttribute('rotation', `${legAngle} 0 0`);
+                    this.legRight.setAttribute('rotation', `${-legAngle} 0 0`);
+
+                    // 2. คำนวณมุมแกว่งของแขน (แกว่งตรงข้ามกับขา)
+                    this.armLeft.setAttribute('rotation', `${-legAngle * 0.7} 0 0`);
+                    this.armRight.setAttribute('rotation', `${legAngle * 0.7} 0 0`);
+
+                    // 3. ตัวกระเด้งขึ้น-ลง เวลาวิ่ง (Bobbing effect)
+                    const bodyBounce = Math.abs(Math.sin(this.animTime * 2)) * 0.08;
+                    this.dinoBodyGroup.setAttribute('position', `0 ${0.4 + bodyBounce} 0`);
+
+                    // 4. หางแกว่งซ้าย-ขวา
+                    const tailWag = Math.sin(this.animTime) * 15;
+                    this.dinoTail.setAttribute('rotation', `0 ${tailWag} 0`);
+                }
+            }
+        });
+
+        // ฟังก์ชันปรับความเร็วจากปุ่ม UI
+        function setSpeed(newSpeed) {
+            const dino = document.querySelector('#dinosaur');
+            dino.setAttribute('dino-animator', 'speed', newSpeed);
         }
     </script>
 </body>
